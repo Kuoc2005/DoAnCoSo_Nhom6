@@ -1,42 +1,64 @@
 import User from "../models/user.js";
 import Booking from "../models/booking.js";
-import { escapeRegex, hubProviderAccountQuery, mapUserToListingPayload } from "../lib/listingMappers.js";
+import { GAME_CATALOG, coverUrlForSlug } from "../lib/gameTaxonomy.js";
+import { escapeRegex, featuredGameSlugFromUser, hubProviderAccountQuery, mapUserToListingPayload } from "../lib/listingMappers.js";
+import { aggregateRentStatsForProviders } from "../lib/providerGameProfile.js";
 
-/** Bảng xếp hạng: điểm kết hợp rating & số review (Wilson đơn giản hoá). */
-function leaderboardScore(u) {
+/** Bảng xếp hạng uy tín: rating × log(review). */
+function leaderboardScore(u, rentBySlug = null) {
     const pl = u.playerListing ?? {};
     const r = typeof pl.ratingAvg === "number" ? pl.ratingAvg : 4.5;
     const n = typeof pl.reviewCount === "number" ? pl.reviewCount : 0;
-    return r * Math.log10(n + 10);
+    const slug = featuredGameSlugFromUser(u, rentBySlug);
+    const rentCount = rentBySlug ? Object.values(rentBySlug).reduce((s, x) => s + (x?.bookingCount || 0), 0) : 0;
+    const rentBoost = rentCount > 0 ? Math.log10(rentCount + 1) * 0.15 : 0;
+    return r * Math.log10(n + 10) + rentBoost;
+}
+
+function mapProviderRow(u, rentBySlug = null) {
+    const base = mapUserToListingPayload(u, rentBySlug);
+    return base;
 }
 
 export async function getLeaderboard(req, res) {
     try {
         const limit = Math.min(100, Math.max(5, parseInt(req.query.limit, 10) || 30));
+        const game =
+            typeof req.query.game === "string" && req.query.game.trim() && req.query.game !== "all"
+                ? req.query.game.trim().toLowerCase()
+                : "";
+
         const docs = await User.find(hubProviderAccountQuery())
             .sort({ "playerListing.ratingAvg": -1, "playerListing.reviewCount": -1 })
-            .limit(120)
+            .limit(200)
             .lean();
 
-        const ranked = [...docs]
-            .map((u) => {
-                const base = mapUserToListingPayload(u);
-                return {
-                    ...base,
-                    rank: 0,
-                    leaderboardScore: Math.round(leaderboardScore(u) * 100) / 100,
-                };
-            })
-            .sort((a, b) => b.leaderboardScore - a.leaderboardScore)
-            .slice(0, limit);
+        const rentMap = await aggregateRentStatsForProviders(docs.map((d) => d._id));
 
+        let ranked = docs.map((u) => {
+            const rentBySlug = rentMap.get(String(u._id)) ?? null;
+            const base = mapProviderRow(u, rentBySlug);
+            return {
+                ...base,
+                rank: 0,
+                leaderboardScore: Math.round(leaderboardScore(u, rentBySlug) * 100) / 100,
+            };
+        });
+
+        if (game) {
+            ranked = ranked.filter((row) => row.featuredGameSlug === game || row.games.includes(game));
+        }
+
+        ranked.sort((a, b) => b.leaderboardScore - a.leaderboardScore);
+        ranked = ranked.slice(0, limit);
         ranked.forEach((row, i) => {
             row.rank = i + 1;
         });
 
         return res.json({
             entries: ranked,
-            formula: "ratingAvg * log10(reviewCount + 10)",
+            formula: "ratingAvg × log10(reviewCount + 10) + bonus thuê",
+            gameFilter: game || null,
         });
     } catch (e) {
         console.error("getLeaderboard:", e);
@@ -44,7 +66,7 @@ export async function getLeaderboard(req, res) {
     }
 }
 
-/** Xếp hạng nền tảng: nạp tiền, chi tiêu thuê, thu nhập provider (từ booking). */
+/** Xếp hạng nền tảng: nạp tiền, chi tiêu thuê, thu nhập provider, uy tín provider. */
 export async function getSocialLeaderboards(req, res) {
     try {
         const limit = Math.min(40, Math.max(5, parseInt(req.query.limit, 10) || 15));
@@ -92,25 +114,60 @@ export async function getSocialLeaderboards(req, res) {
                 },
             },
             { $sort: { totalEarnedVnd: -1 } },
-            { $limit: limit },
             { $lookup: { from: "users", localField: "_id", foreignField: "_id", as: "user" } },
             { $unwind: "$user" },
+            {
+                $match: {
+                    "user.accountType": "provider",
+                    "user.role": { $ne: "admin" },
+                    "user.playerListing.isVerifiedProvider": true,
+                },
+            },
+            { $limit: limit },
             {
                 $project: {
                     _id: 0,
                     username: "$user.username",
                     displayName: "$user.displayName",
                     avatarUrl: "$user.avatarUrl",
+                    featuredGameSlug: "$user.playerListing.featuredGameSlug",
                     totalEarnedVnd: 1,
                     bookingCount: 1,
                 },
             },
         ]);
 
+        const providerDocs = await User.find(hubProviderAccountQuery())
+            .sort({ "playerListing.ratingAvg": -1, "playerListing.reviewCount": -1 })
+            .limit(Math.max(limit, 30))
+            .lean();
+        const rentMap = await aggregateRentStatsForProviders(providerDocs.map((d) => d._id));
+        const topRated = providerDocs
+            .map((u) => {
+                const rentBySlug = rentMap.get(String(u._id)) ?? null;
+                const base = mapProviderRow(u, rentBySlug);
+                return {
+                    ...base,
+                    rank: 0,
+                    leaderboardScore: Math.round(leaderboardScore(u, rentBySlug) * 100) / 100,
+                };
+            })
+            .sort((a, b) => b.leaderboardScore - a.leaderboardScore)
+            .slice(0, limit);
+        topRated.forEach((row, i) => {
+            row.rank = i + 1;
+        });
+
         return res.json({
             topTopUp,
             topRenters: topRenters.map((r, i) => ({ rank: i + 1, ...r })),
-            topProviderEarners: topProviderEarners.map((r, i) => ({ rank: i + 1, ...r })),
+            topProviderEarners: topProviderEarners.map((r, i) => ({
+                rank: i + 1,
+                ...r,
+                game: GAME_CATALOG[r.featuredGameSlug]?.label ?? r.featuredGameSlug ?? "—",
+                listingCoverUrl: coverUrlForSlug(r.featuredGameSlug) || undefined,
+            })),
+            topRatedProviders: topRated,
         });
     } catch (e) {
         console.error("getSocialLeaderboards:", e);
@@ -126,7 +183,12 @@ export async function getListings(req, res) {
         const conditions = [hubProviderAccountQuery()];
         if (game && game !== "all") {
             conditions.push({
-                $or: [{ "playerListing.primaryGameSlug": game }, { "gamingProfile.favoriteSlugs": game }],
+                $or: [
+                    { "playerListing.featuredGameSlug": game },
+                    { "playerListing.primaryGameSlug": game },
+                    { "gamingProfile.favoriteSlugs": game },
+                    { "gamingProfile.playHistory.gameSlug": game },
+                ],
             });
         }
         if (q) {
@@ -147,10 +209,11 @@ export async function getListings(req, res) {
             User.find(filter).sort({ "playerListing.ratingAvg": -1, createdAt: -1 }).skip(skip).limit(pageSize).lean(),
         ]);
 
+        const rentMap = await aggregateRentStatsForProviders(docs.map((d) => d._id));
         const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
         return res.json({
-            listings: docs.map(mapUserToListingPayload),
+            listings: docs.map((u) => mapUserToListingPayload(u, rentMap.get(String(u._id)) ?? null)),
             total,
             page,
             pageSize,

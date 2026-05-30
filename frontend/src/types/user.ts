@@ -36,6 +36,7 @@ export type AuthUser = {
     voiceOk?: boolean;
     isLive?: boolean;
     isVerifiedProvider?: boolean;
+    featuredGameSlug?: string;
     listingCoverUrl?: string;
   };
   walletBalanceVnd?: number;

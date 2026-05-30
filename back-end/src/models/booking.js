@@ -16,6 +16,8 @@ const bookingSchema = new mongoose.Schema(
             index: true,
         },
         note: { type: String, maxlength: 500, default: "" },
+        /** Game được thuê — dùng thống kê game nổi bật */
+        gameSlug: { type: String, default: "", lowercase: true, trim: true, maxlength: 64 },
         createdByAdminId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
         source: { type: String, enum: ["admin", "quick_rent"], default: "admin" },
     },

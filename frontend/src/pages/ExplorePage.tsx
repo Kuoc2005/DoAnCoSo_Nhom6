@@ -102,8 +102,8 @@ const ExplorePage = () => {
             <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#6460FF]">Khám phá</p>
             <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-[#280071] sm:text-4xl">Tìm đồng đội</h1>
             <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-[#666666]">
-              Lọc theo game — chỉ người cho thuê đã được duyệt (không hiển thị tài khoản admin). Danh sách phân trang 12 người/trang. Mỗi người có URL dạng{" "}
-              <code className="rounded bg-[#F1EEFF] px-1.5 py-0.5 text-[13px] text-[#6460FF]">/players/username</code>.
+              Lọc theo game
+              <code className="rounded bg-[#F1EEFF] px-1.5 py-0.5 text-[13px] text-[#6460FF]">Tìm bạn Duo</code>.
             </p>
           </div>
           <Link

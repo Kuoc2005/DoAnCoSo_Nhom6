@@ -50,7 +50,7 @@ const HomePage = () => {
         if (!cancelled) setData(j);
       })
       .catch(() => {
-        if (!cancelled) setLoadError("Không kết nối được máy chủ. Hãy chạy backend.");
+        if (!cancelled) setLoadError("Không kết nối được máy chủ.");
       });
     return () => {
       cancelled = true;
@@ -84,7 +84,7 @@ const HomePage = () => {
             </span>
           </h1>
           <p className="mx-auto mt-5 max-w-xl text-pretty text-[15px] leading-relaxed text-white/85 sm:mx-0 sm:text-base">
-            Khám phá người chơi đã xác minh, xem hồ sơ và thuê nhanh. Giao diện lấy cảm hứng từ{" "}
+            Khám phá người chơi, xem hồ sơ và thuê nhanh. Giao diện thân thiện dễ sử dụng
             <a
               href="https://playerduo.net/"
               target="_blank"

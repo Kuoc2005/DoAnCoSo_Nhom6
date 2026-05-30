@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Player Duo — Nền tảng tìm đồng chơi / thuê duo
 
 Dự án full-stack: **React (Vite + TypeScript)** + **Node.js (Express 5, ESM)** + **MongoDB (Mongoose)**. Giao diện lấy cảm hứng hub game / thuê người chơi kèm rank, có **đăng ký đăng nhập**, **ví demo**, **đơn trở thành người cho thuê**, **admin duyệt**, **trang công khai `/players/:username`**, **tin nhắn hỗ trợ realtime (WebSocket)** và **bảng điều khiển admin** (thống kê, doanh thu, duyệt đơn, …).
@@ -304,3 +305,5 @@ Reverse proxy (nginx) cần:
 Dự án mang tính học tập / đồ án (`doancoso`). Bạn có thể chỉnh sửa README này theo tên nhóm, giảng viên hướng dẫn và phiên bản báo cáo của mình.
 
 Nếu cần bổ sung: sơ đồ ERD, sequence diagram luồng booking, hoặc checklist nộp bài — có thể thêm mục phụ lục vào cuối file.
+=======
+

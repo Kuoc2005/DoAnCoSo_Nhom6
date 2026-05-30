@@ -2,8 +2,9 @@ import User from "../models/user.js";
 import { GAME_CATALOG, normalizeSlug } from "../lib/gameTaxonomy.js";
 import {
     avatarGradientForUsername,
+    featuredGameSlugFromUser,
     gameSlugsForFilter,
-    primarySlugFromUser,
+    resolveListingCoverUrl,
 } from "../lib/listingMappers.js";
 
 export async function getPublicPlayer(req, res) {
@@ -21,8 +22,9 @@ export async function getPublicPlayer(req, res) {
             return res.status(404).json({ message: "Không tìm thấy người chơi." });
         }
 
-        const slug = primarySlugFromUser(u);
+        const slug = featuredGameSlugFromUser(u);
         const pl = u.playerListing ?? {};
+        const rentableSlugs = gameSlugsForFilter(u);
         const player = {
             id: String(u._id),
             username: u.username,
@@ -34,10 +36,16 @@ export async function getPublicPlayer(req, res) {
             gamingProfile: u.gamingProfile,
             playerListing: u.playerListing,
             primaryGameLabel: GAME_CATALOG[slug]?.label ?? slug,
-            gameSlugs: gameSlugsForFilter(u),
+            gameSlugs: rentableSlugs,
+            rentableGames: rentableSlugs.map((s) => ({
+                slug: s,
+                label: GAME_CATALOG[s]?.label ?? s,
+            })),
             avatarClassName: avatarGradientForUsername(u.username),
             avatarUrl: u.avatarUrl?.trim() ? u.avatarUrl.trim() : undefined,
-            listingCoverUrl: pl.listingCoverUrl?.trim() ? String(pl.listingCoverUrl).trim() : undefined,
+            listingCoverUrl: resolveListingCoverUrl(u),
+            featuredGameSlug: slug,
+            primaryGameSlug: slug,
         };
 
         return res.json({ player });

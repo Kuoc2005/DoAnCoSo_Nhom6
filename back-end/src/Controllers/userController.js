@@ -1,5 +1,6 @@
 import User from "../models/user.js";
 import { ALLOWED_SLUGS, isAllowedSlug, normalizeSlug } from "../lib/gameTaxonomy.js";
+import { syncProviderFeaturedGame } from "../lib/providerGameProfile.js";
 
 export const authMe = async (req, res) => {
     try {
@@ -60,6 +61,12 @@ export const updateGamingProfile = async (req, res) => {
 
         const user = await User.findByIdAndUpdate(req.user._id, { $set: update }, { new: true }).select("-hashedPassword");
 
+        if (user?.accountType === "provider") {
+            await syncProviderFeaturedGame(user._id);
+            const refreshed = await User.findById(user._id).select("-hashedPassword").lean();
+            return res.status(200).json({ user: refreshed });
+        }
+
         return res.status(200).json({ user });
     } catch (error) {
         console.error("updateGamingProfile:", error);
@@ -89,13 +96,6 @@ export const updatePlayerListing = async (req, res) => {
         }
         if (b.rankLabel != null) {
             update["playerListing.rankLabel"] = String(b.rankLabel).trim().slice(0, 80);
-        }
-        if (b.primaryGameSlug != null) {
-            const slug = normalizeSlug(b.primaryGameSlug);
-            if (!isAllowedSlug(slug)) {
-                return res.status(400).json({ message: "Game chính không hợp lệ." });
-            }
-            update["playerListing.primaryGameSlug"] = slug;
         }
         if (b.ratingAvg != null) {
             if (req.user.role !== "admin") {
@@ -226,8 +226,7 @@ export const updateProviderStudio = async (req, res) => {
             update.avatarUrl = s || undefined;
         }
         if (b.listingCoverUrl !== undefined) {
-            const s = String(b.listingCoverUrl).trim().slice(0, MAX_URL);
-            update["playerListing.listingCoverUrl"] = s || "";
+            /* Ảnh bìa tự động theo game chính — bỏ qua URL tùy chỉnh từ client. */
         }
         if (b.pricePerHour != null) {
             const n = Number(b.pricePerHour);
@@ -238,13 +237,6 @@ export const updateProviderStudio = async (req, res) => {
         }
         if (b.rankLabel != null) {
             update["playerListing.rankLabel"] = String(b.rankLabel).trim().slice(0, 80);
-        }
-        if (b.primaryGameSlug != null) {
-            const slug = normalizeSlug(b.primaryGameSlug);
-            if (!isAllowedSlug(slug)) {
-                return res.status(400).json({ message: "Game chính không hợp lệ." });
-            }
-            update["playerListing.primaryGameSlug"] = slug;
         }
         if (b.voiceOk != null) {
             update["playerListing.voiceOk"] = Boolean(b.voiceOk);
@@ -259,7 +251,10 @@ export const updateProviderStudio = async (req, res) => {
 
         const user = await User.findByIdAndUpdate(req.user._id, { $set: update }, { new: true }).select("-hashedPassword");
 
-        return res.status(200).json({ user });
+        await syncProviderFeaturedGame(req.user._id);
+        const refreshed = await User.findById(req.user._id).select("-hashedPassword").lean();
+
+        return res.status(200).json({ user: refreshed });
     } catch (error) {
         console.error("updateProviderStudio:", error);
         return res.status(500).json({ message: error.message || "Lỗi máy chủ" });

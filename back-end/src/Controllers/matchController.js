@@ -8,6 +8,7 @@ export const getTaxonomy = (req, res) => {
         slug,
         label: GAME_CATALOG[slug].label,
         genres: GAME_CATALOG[slug].genres,
+        coverUrl: GAME_CATALOG[slug].coverUrl ?? "",
     }));
     return res.json({ games });
 };

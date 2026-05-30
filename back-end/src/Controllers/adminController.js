@@ -1,7 +1,8 @@
 import User from "../models/user.js";
 import Booking from "../models/booking.js";
 import { mapUserToListingPayload } from "../lib/listingMappers.js";
-import { isAllowedSlug, normalizeSlug } from "../lib/gameTaxonomy.js";
+import { isAllowedSlug, normalizeSlug, coverUrlForSlug } from "../lib/gameTaxonomy.js";
+import { computeFeaturedGameSlug, syncProviderFeaturedGame } from "../lib/providerGameProfile.js";
 
 export const listUsers = async (req, res) => {
     try {
@@ -69,7 +70,7 @@ export const listProviderApplications = async (req, res) => {
     }
 };
 
-/** PATCH body: { status: "approved" | "rejected" } */
+/** */
 export const decideProviderApplication = async (req, res) => {
     try {
         const { status } = req.body ?? {};
@@ -91,6 +92,8 @@ export const decideProviderApplication = async (req, res) => {
             const gSlug = app?.primaryGameSlug ? normalizeSlug(app.primaryGameSlug) : "";
             if (gSlug && isAllowedSlug(gSlug)) {
                 user.playerListing.primaryGameSlug = gSlug;
+                user.playerListing.featuredGameSlug = gSlug;
+                user.playerListing.listingCoverUrl = coverUrlForSlug(gSlug);
             }
             const p = Number(app?.proposedPricePerHour);
             if (!Number.isNaN(p) && p >= 10_000 && p <= 50_000_000) {
@@ -106,6 +109,9 @@ export const decideProviderApplication = async (req, res) => {
         }
 
         await user.save();
+        if (status === "approved") {
+            await syncProviderFeaturedGame(user._id);
+        }
         const out = await User.findById(user._id).select("-hashedPassword").lean();
         return res.status(200).json({ user: out });
     } catch (error) {
@@ -278,6 +284,11 @@ export const createBooking = async (req, res) => {
         const grossVnd = Math.round(hours * pricePerHourVnd);
         const platformFeeVnd = Math.round((grossVnd * platformFeePercent) / 100);
 
+        let gameSlug = normalizeSlug(b.gameSlug);
+        if (!gameSlug || !isAllowedSlug(gameSlug)) {
+            gameSlug = computeFeaturedGameSlug(provider);
+        }
+
         await Booking.create({
             renterUserId: renter._id,
             providerUserId: provider._id,
@@ -288,9 +299,14 @@ export const createBooking = async (req, res) => {
             platformFeeVnd,
             status,
             note,
+            gameSlug,
             createdByAdminId: req.user._id,
             source: "admin",
         });
+
+        if (status === "completed") {
+            await syncProviderFeaturedGame(provider._id);
+        }
 
         return res.status(201).json({ ok: true });
     } catch (error) {

@@ -1,13 +1,7 @@
 import bcrypt from "bcrypt";
 import User from "../models/user.js";
 
-/**
- * BOOTSTRAP_ADMIN_EMAIL — email admin (bắt buộc để kích hoạt).
- *
- * - Nếu đã có user với email đó → gán role `admin`.
- * - Nếu chưa có user → cần thêm BOOTSTRAP_ADMIN_USERNAME + BOOTSTRAP_ADMIN_PASSWORD
- *   để tự tạo tài khoản admin khi server khởi động (mật khẩu tối thiểu 6 ký tự).
- */
+
 export async function promoteBootstrapAdmin() {
     const email = process.env.BOOTSTRAP_ADMIN_EMAIL?.trim().toLowerCase();
     if (!email) return;

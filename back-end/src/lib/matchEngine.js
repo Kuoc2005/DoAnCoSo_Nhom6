@@ -90,7 +90,7 @@ export function cosineSimilarity(a, b) {
 }
 
 /**
- * Giải thích ngắn: game trùng sở thích / trùng lịch sử.
+ *  game trùng sở thích / trùng lịch sử.
  */
 export function explainMatch(selfUser, otherUser) {
     const favA = new Set((selfUser.gamingProfile?.favoriteSlugs ?? []).map(normalizeSlug));

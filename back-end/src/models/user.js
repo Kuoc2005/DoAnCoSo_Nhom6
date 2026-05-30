@@ -58,6 +58,8 @@ const userSchema = new mongoose.Schema({
         pricePerHour: { type: Number, default: 55000, min: 0, max: 50_000_000 },
         rankLabel: { type: String, default: "", maxlength: 80 },
         primaryGameSlug: { type: String, default: "valorant", lowercase: true, trim: true },
+        /** Game tự động (hay thuê / hay chơi) — dùng hiển thị hub & ảnh bìa */
+        featuredGameSlug: { type: String, default: "", lowercase: true, trim: true },
         ratingAvg: { type: Number, default: 4.5, min: 0, max: 5 },
         reviewCount: { type: Number, default: 0, min: 0 },
         voiceOk: { type: Boolean, default: true },

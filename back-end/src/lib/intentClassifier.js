@@ -1,15 +1,9 @@
-/**
- * Phân lớp ý định (Naive Bayes đơn giản + Laplace):
- * Mỗi lớp có từ điển token → log P(w|c); điểm = sum log P(w|c) + log P(c).
- */
+/** Mỗi lớp có từ điển token → log P(w|c); điểm = sum log P(w|c) + log P(c).*/
 import { ALLOWED_SLUGS, GAME_CATALOG, normalizeSlug } from "./gameTaxonomy.js";
-
 const LABELS = ["find_match", "game_pick", "price_info", "leaderboard", "general"];
-
-/** Log xác suất tiên nghiệm (đồng đều nhẹ). */
+/** Log xác suất tiên nghiệm */
 const LOG_PRIOR = Math.log(1 / LABELS.length);
-
-/** Từ khóa rút gọn theo lớp — dùng làm "huấn luyện" giả lập. */
+/** Từ khóa rút gọn  */
 const CLASS_KEYWORDS = {
     find_match: [
         "tìm",
@@ -122,7 +116,7 @@ export function classifyIntentUtterance(text) {
         }
     }
 
-    /** Chuẩn hoá thành xác suất mềm (softmax scores). */
+    /** Chuẩn hoá thành xác suất mềm */
     const labs = LABELS;
     const exps = labs.map((l) => Math.exp(scores[l] - max));
     const sum = exps.reduce((a, b) => a + b, 0) || 1;

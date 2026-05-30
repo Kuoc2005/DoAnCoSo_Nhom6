@@ -23,6 +23,23 @@ export function notifySupportMessage({ threadUserId, message }) {
     }
 }
 
+/** Gửi tin riêng tới cả hai người trong cuộc hội thoại. */
+export function notifyDirectMessage({ participantIds, message }) {
+    if (!wss) return;
+    const ids = new Set(participantIds.map(String));
+    const data = JSON.stringify({ type: "direct_message", participantIds: [...ids], message });
+    for (const client of wss.clients) {
+        if (client.readyState !== 1) continue;
+        if (ids.has(String(client.userId))) {
+            try {
+                client.send(data);
+            } catch {
+                /* ignore */
+            }
+        }
+    }
+}
+
 export function attachSupportChatWebSocket(server) {
     if (wss) return wss;
     wss = new WebSocketServer({ server, path: "/ws/chat" });
@@ -50,7 +67,7 @@ export function attachSupportChatWebSocket(server) {
             }
             return;
         }
-        ws.on("error", () => {});
+        ws.on("error", () => { });
     });
     return wss;
 }

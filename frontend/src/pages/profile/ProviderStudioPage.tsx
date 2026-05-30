@@ -1,8 +1,9 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Link, Navigate } from "react-router";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { apiFetch, getApiUrl } from "@/lib/api";
+import { gameLabel } from "@/lib/gameCatalog";
 import { useAuth } from "@/contexts/AuthContext";
 import type { GameTaxonomyItem } from "@/types/match";
 
@@ -10,13 +11,16 @@ export default function ProviderStudioPage() {
   const { user, ready, refreshUser } = useAuth();
   const [taxonomy, setTaxonomy] = useState<GameTaxonomyItem[]>([]);
   const [avatarUrl, setAvatarUrl] = useState("");
-  const [listingCoverUrl, setListingCoverUrl] = useState("");
   const [pricePerHour, setPricePerHour] = useState(55000);
   const [rankLabel, setRankLabel] = useState("");
-  const [primaryGameSlug, setPrimaryGameSlug] = useState("valorant");
   const [voiceOk, setVoiceOk] = useState(true);
   const [isLive, setIsLive] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  const featuredGameSlug =
+    (user?.playerListing as { featuredGameSlug?: string } | undefined)?.featuredGameSlug?.trim() ||
+    user?.playerListing?.primaryGameSlug?.trim() ||
+    "valorant";
 
   useEffect(() => {
     fetch(getApiUrl("/api/match/taxonomy"))
@@ -28,14 +32,17 @@ export default function ProviderStudioPage() {
   useEffect(() => {
     if (!user) return;
     setAvatarUrl(user.avatarUrl?.trim() ?? "");
-    setListingCoverUrl((user.playerListing as { listingCoverUrl?: string })?.listingCoverUrl?.trim() ?? "");
     const pl = user.playerListing;
     setPricePerHour(pl?.pricePerHour ?? 55000);
     setRankLabel(pl?.rankLabel ?? "");
-    setPrimaryGameSlug(pl?.primaryGameSlug ?? "valorant");
     setVoiceOk(pl?.voiceOk !== false);
     setIsLive(Boolean(pl?.isLive));
   }, [user?._id, user?.playerListing, user?.avatarUrl]);
+
+  const coverPreviewUrl = useMemo(() => {
+    const row = taxonomy.find((g) => g.slug === featuredGameSlug);
+    return row?.coverUrl?.trim() ?? "";
+  }, [taxonomy, featuredGameSlug]);
 
   if (!ready) return <p className="pd-text-body text-[#666666]">Đang tải...</p>;
   if (!user) {
@@ -60,10 +67,8 @@ export default function ProviderStudioPage() {
         method: "PATCH",
         body: JSON.stringify({
           avatarUrl: avatarUrl.trim(),
-          listingCoverUrl: listingCoverUrl.trim(),
           pricePerHour,
           rankLabel,
-          primaryGameSlug,
           voiceOk,
           isLive,
         }),
@@ -84,11 +89,12 @@ export default function ProviderStudioPage() {
       <div className="pd-card-default">
         <h2 className="pd-text-h2 text-[#354052]">Studio người cho thuê</h2>
         <p className="pd-text-body-sm mt-2 text-[#666666]">
-          Chỉnh avatar, ảnh bìa, giá, game, rank và trạng thái online. Dữ liệu hiển thị trên{" "}
-          <Link className="font-semibold text-[#6460FF]" to="/explore">
-            Khám phá
-          </Link>{" "}
-          sau khi bạn là người cho thuê đã duyệt.
+          Ảnh bìa và game hiển thị <strong>tự động</strong>: ưu tiên game được thuê nhiều nhất, sau đó game bạn chơi
+          nhiều giờ nhất (cập nhật trong{" "}
+          <Link className="font-semibold text-[#6460FF]" to="/profile/gaming">
+            Hồ sơ gaming
+          </Link>
+          ).
         </p>
 
         <div className="mt-6 space-y-6">
@@ -104,17 +110,23 @@ export default function ProviderStudioPage() {
               placeholder="https://..."
             />
           </div>
+
           <div>
-            <label htmlFor="ps-cover" className="pd-text-label mb-2 block text-[#354052]">
-              URL ảnh bìa hồ sơ
-            </label>
-            <input
-              id="ps-cover"
-              className="pd-input-field w-full"
-              value={listingCoverUrl}
-              onChange={(e) => setListingCoverUrl(e.target.value)}
-              placeholder="https://..."
-            />
+            <p className="pd-text-label mb-2 text-[#354052]">Game &amp; ảnh bìa hiện tại (tự động)</p>
+            <div className="overflow-hidden rounded-xl border border-black/[0.08] shadow-sm">
+              <div className="relative aspect-[21/9] min-h-[120px] bg-gradient-to-br from-[#5b4bdb] to-[#7B19D8]">
+                {coverPreviewUrl ? (
+                  <img src={coverPreviewUrl} alt="" className="absolute inset-0 size-full object-cover" />
+                ) : null}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+                <p className="absolute bottom-3 left-3 text-sm font-semibold text-white">
+                  {gameLabel(featuredGameSlug)}
+                </p>
+              </div>
+            </div>
+            <p className="mt-2 text-xs text-[#999999]">
+              Mỗi lần có booking mới hoặc bạn cập nhật lịch sử chơi, hệ thống tính lại game nổi bật.
+            </p>
           </div>
 
           <div className="grid gap-6 md:grid-cols-2">
@@ -143,28 +155,11 @@ export default function ProviderStudioPage() {
                 placeholder="vd: Immortal 2"
               />
             </div>
-            <div className="md:col-span-2">
-              <label htmlFor="ps-game" className="pd-text-label mb-2 block text-[#354052]">
-                Game chính
-              </label>
-              <select
-                id="ps-game"
-                className="pd-input-field w-full max-w-md"
-                value={primaryGameSlug}
-                onChange={(e) => setPrimaryGameSlug(e.target.value)}
-              >
-                {taxonomy.map((g) => (
-                  <option key={g.slug} value={g.slug}>
-                    {g.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <label className="flex cursor-pointer items-center gap-3 pd-text-body text-[#354052]">
+            <label className="flex cursor-pointer items-center gap-3 pd-text-body text-[#354052] md:col-span-2">
               <input type="checkbox" className="size-5 accent-[#6460FF]" checked={voiceOk} onChange={(e) => setVoiceOk(e.target.checked)} />
               Chơi voice / party
             </label>
-            <label className="flex cursor-pointer items-center gap-3 pd-text-body text-[#354052]">
+            <label className="flex cursor-pointer items-center gap-3 pd-text-body text-[#354052] md:col-span-2">
               <input type="checkbox" className="size-5 accent-[#6460FF]" checked={isLive} onChange={(e) => setIsLive(e.target.checked)} />
               Hiển thị đang online (live)
             </label>

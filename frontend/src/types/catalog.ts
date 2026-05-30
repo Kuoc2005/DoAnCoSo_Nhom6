@@ -21,6 +21,7 @@ export type ListingCardPayload = {
   avatarClassName: string;
   avatarUrl?: string;
   listingCoverUrl?: string;
+  featuredGameSlug?: string;
 };
 
 export type ListingsResponse = {

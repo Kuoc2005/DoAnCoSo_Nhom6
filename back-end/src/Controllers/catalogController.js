@@ -1,6 +1,7 @@
 import User from "../models/user.js";
 import { ALLOWED_SLUGS, GAME_CATALOG } from "../lib/gameTaxonomy.js";
 import { hubProviderAccountQuery, mapUserToListingPayload } from "../lib/listingMappers.js";
+import { gameFilterOrClause } from "../lib/providerGameProfile.js";
 
 export async function getHomeCatalog(req, res) {
     try {
@@ -9,12 +10,7 @@ export async function getHomeCatalog(req, res) {
         const categories = [];
         for (const slug of ALLOWED_SLUGS) {
             const playerCount = await User.countDocuments({
-                $and: [
-                    hubProviderAccountQuery(),
-                    {
-                        $or: [{ "playerListing.primaryGameSlug": slug }, { "gamingProfile.favoriteSlugs": slug }],
-                    },
-                ],
+                $and: [hubProviderAccountQuery(), gameFilterOrClause(slug)],
             });
             categories.push({
                 slug,

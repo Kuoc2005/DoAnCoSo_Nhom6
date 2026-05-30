@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router";
+import { Link, useNavigate, useParams } from "react-router";
 import { ArrowLeft, Gamepad2, MessageCircle, Share2, Star, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { getApiUrl, apiFetch } from "@/lib/api";
+import { gameLabel } from "@/lib/gameCatalog";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -16,8 +17,10 @@ type PublicPlayer = {
   avatarUrl?: string;
   listingCoverUrl?: string;
   primaryGameLabel: string;
+  featuredGameSlug?: string;
   avatarClassName: string;
   gameSlugs: string[];
+  rentableGames?: { slug: string; label: string }[];
   playerListing?: {
     pricePerHour?: number;
     rankLabel?: string;
@@ -48,6 +51,7 @@ function formatVnd(n: number) {
 
 export default function PlayerPublicPage() {
   const { username } = useParams<{ username: string }>();
+  const navigate = useNavigate();
   const { user, refreshUser } = useAuth();
   const [player, setPlayer] = useState<PublicPlayer | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -57,6 +61,7 @@ export default function PlayerPublicPage() {
   const [submittingReview, setSubmittingReview] = useState(false);
   const [rentOpen, setRentOpen] = useState(false);
   const [rentHours, setRentHours] = useState("1");
+  const [rentGameSlug, setRentGameSlug] = useState("");
   const [rentLoading, setRentLoading] = useState(false);
 
   function reloadPlayer() {
@@ -67,7 +72,7 @@ export default function PlayerPublicPage() {
         const d = (await res.json()) as { player: PublicPlayer };
         setPlayer(d.player);
       })
-      .catch(() => {});
+      .catch(() => { });
   }
 
   useEffect(() => {
@@ -102,7 +107,7 @@ export default function PlayerPublicPage() {
         const d = (await res.json()) as { reviews: ReviewRow[] };
         if (!cancelled) setReviewRows(d.reviews ?? []);
       })
-      .catch(() => {});
+      .catch(() => { });
     return () => {
       cancelled = true;
     };
@@ -134,6 +139,20 @@ export default function PlayerPublicPage() {
   const coverUrl = player.listingCoverUrl?.trim() || pl.listingCoverUrl?.trim();
   const isHirable = player.accountType === "provider";
   const price = pl.pricePerHour ?? 55000;
+  const rentableGames =
+    player.rentableGames?.length
+      ? player.rentableGames
+      : player.gameSlugs.map((slug) => ({ slug, label: gameLabel(slug) }));
+
+  function openRentModal() {
+    const defaultSlug =
+      player.featuredGameSlug?.trim() ||
+      player.gameSlugs[0] ||
+      rentableGames[0]?.slug ||
+      "valorant";
+    setRentGameSlug(defaultSlug);
+    setRentOpen(true);
+  }
 
   async function submitQuickRent() {
     if (!user || !player || !isHirable) return;
@@ -142,19 +161,28 @@ export default function PlayerPublicPage() {
       toast.error("Số giờ tối thiểu 0.25.");
       return;
     }
+    if (!rentGameSlug.trim()) {
+      toast.error("Vui lòng chọn game muốn thuê.");
+      return;
+    }
     setRentLoading(true);
     try {
       const res = await apiFetch("/api/rentals/quick", {
         method: "POST",
-        body: JSON.stringify({ providerUsername: player.username, hours: h }),
+        body: JSON.stringify({
+          providerUsername: player.username,
+          hours: h,
+          gameSlug: rentGameSlug,
+        }),
       });
       const j = await res.json().catch(() => ({}));
       if (!res.ok) {
         throw new Error(typeof j.message === "string" ? j.message : "Thuê thất bại.");
       }
-      toast.success("Đã đặt thuê — số dư ví đã được trừ.");
+      toast.success(`Đã đặt thuê ${gameLabel(rentGameSlug)} — số dư ví đã được trừ.`);
       setRentOpen(false);
       await refreshUser();
+      reloadPlayer();
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : "Lỗi.");
     } finally {
@@ -288,10 +316,22 @@ export default function PlayerPublicPage() {
                   </div>
 
                   <div className="mt-6 flex flex-wrap items-center justify-center gap-2 sm:justify-start">
-                    <Button variant="pdSecondary" type="button" className="min-h-11">
-                      <MessageCircle className="mr-2 size-4" />
-                      Nhắn tin
-                    </Button>
+                    {user && user.username !== player.username ? (
+                      <Button
+                        variant="pdSecondary"
+                        type="button"
+                        className="min-h-11"
+                        onClick={() => navigate(`/messages?with=${encodeURIComponent(player.username)}`)}
+                      >
+                        <MessageCircle className="mr-2 size-4" />
+                        Nhắn tin
+                      </Button>
+                    ) : !user ? (
+                      <Button variant="pdSecondary" type="button" className="min-h-11" render={<Link to="/signin" state={{ from: `/players/${player.username}` }} />}>
+                        <MessageCircle className="mr-2 size-4" />
+                        Nhắn tin
+                      </Button>
+                    ) : null}
                     <Button variant="pdGhost" type="button" aria-label="Chia sẻ" className="min-h-11 px-4">
                       <Share2 className="size-4" />
                     </Button>
@@ -313,7 +353,7 @@ export default function PlayerPublicPage() {
                         variant="pdSecondary"
                         type="button"
                         className="mt-5 w-full min-h-12 border-0 bg-white font-bold text-[#280071] shadow-md hover:bg-[#faf9ff]"
-                        onClick={() => setRentOpen(true)}
+                        onClick={openRentModal}
                       >
                         Thuê ngay
                       </Button>
@@ -344,8 +384,22 @@ export default function PlayerPublicPage() {
               Game &amp; sở thích
             </h3>
             <p className="mt-3 text-sm text-[#666666]">
-              Game chính: <strong className="text-[#354052]">{player.primaryGameLabel}</strong>
+              Game nổi bật: <strong className="text-[#354052]">{player.primaryGameLabel}</strong>
             </p>
+            {rentableGames.length > 0 ? (
+              <ul className="mt-3 flex flex-wrap gap-2">
+                {rentableGames.map((g) => (
+                  <li key={g.slug}>
+                    <Link
+                      className="inline-block rounded-full bg-[#F1EEFF] px-3 py-1 text-xs font-semibold text-[#6460FF] hover:bg-[#e8e4ff]"
+                      to={`/explore/game/${g.slug}`}
+                    >
+                      {g.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
             <ul className="mt-4 space-y-2 text-sm text-[#666666]">
               {(player.gamingProfile?.favoriteSlugs ?? []).slice(0, 10).map((s) => (
                 <li key={s}>
@@ -430,7 +484,7 @@ export default function PlayerPublicPage() {
         </section>
 
         <p className="mt-10 text-center text-[11px] text-[#999999]">
-          Hồ sơ công khai · <code className="rounded bg-white/80 px-1.5 py-0.5 text-[10px]">/players/{player.username}</code>
+          Hồ sơ công khai · <code className="rounded bg-white/80 px-1.5 py-0.5 text-[10px]">{player.username}</code>
         </p>
       </div>
 
@@ -455,6 +509,21 @@ export default function PlayerPublicPage() {
               </p>
             ) : (
               <>
+                <label htmlFor="rent-game" className="pd-text-label mt-4 block text-[#354052]">
+                  Game muốn thuê
+                </label>
+                <select
+                  id="rent-game"
+                  className="pd-input-field mt-2 w-full"
+                  value={rentGameSlug}
+                  onChange={(e) => setRentGameSlug(e.target.value)}
+                >
+                  {rentableGames.map((g) => (
+                    <option key={g.slug} value={g.slug}>
+                      {g.label}
+                    </option>
+                  ))}
+                </select>
                 <label htmlFor="rent-h" className="pd-text-label mt-4 block text-[#354052]">
                   Số giờ
                 </label>

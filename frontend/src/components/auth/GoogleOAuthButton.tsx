@@ -20,7 +20,7 @@ export function GoogleOAuthButton({ intent, className }: Props) {
     }
     toast.info("OAuth Google", {
       description:
-        "Thêm biến VITE_GOOGLE_OAUTH_URL (URL backend redirect Google) trong file .env để kích hoạt đăng nhập thật.",
+        "Đang phát triển."
     });
   };
 

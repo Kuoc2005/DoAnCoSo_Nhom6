@@ -4,6 +4,7 @@ export type GameTaxonomyItem = {
   slug: string;
   label: string;
   genres: string[];
+  coverUrl?: string;
 };
 
 export type MatchExplanation = {

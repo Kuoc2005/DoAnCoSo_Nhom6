@@ -1,10 +1,12 @@
 import mongoose from "mongoose";
 import User from "../models/user.js";
 import Booking from "../models/booking.js";
-import { normalizeSlug } from "../lib/gameTaxonomy.js";
+import { isAllowedSlug, normalizeSlug } from "../lib/gameTaxonomy.js";
+import { syncProviderFeaturedGame } from "../lib/providerGameProfile.js";
+import { gameSlugsForFilter } from "../lib/listingMappers.js";
 
 /**
- * POST /api/rentals/quick  { providerUsername, hours, platformFeePercent? }
+ * POST /api/rentals/quick  { providerUsername, hours, gameSlug, platformFeePercent? }
  */
 export async function quickRent(req, res) {
     try {
@@ -16,10 +18,21 @@ export async function quickRent(req, res) {
             return res.status(400).json({ message: "Thiếu providerUsername hoặc số giờ không hợp lệ (0.25–500)." });
         }
 
+        const gameSlug = normalizeSlug(req.body?.gameSlug);
+        if (!gameSlug || !isAllowedSlug(gameSlug)) {
+            return res.status(400).json({ message: "Vui lòng chọn game muốn thuê." });
+        }
+
         const provider = await User.findOne({ username: providerUsername });
         if (!provider || provider.accountType !== "provider") {
             return res.status(400).json({ message: "Người chơi này không nhận thuê công khai." });
         }
+
+        const offeredGames = gameSlugsForFilter(provider);
+        if (!offeredGames.includes(gameSlug)) {
+            return res.status(400).json({ message: "Người cho thuê không hỗ trợ game này." });
+        }
+
         if (String(provider._id) === String(req.user._id)) {
             return res.status(400).json({ message: "Không thể thuê chính mình." });
         }
@@ -71,6 +84,7 @@ export async function quickRent(req, res) {
                             status: "completed",
                             note: "Thuê nhanh từ app",
                             source: "quick_rent",
+                            gameSlug,
                         },
                     ],
                     { session }
@@ -92,10 +106,12 @@ export async function quickRent(req, res) {
             session.endSession();
         }
 
+        await syncProviderFeaturedGame(provider._id);
+
         const userOut = await User.findById(req.user._id).select("-hashedPassword").lean();
         return res.status(201).json({
             user: userOut,
-            booking: { grossVnd, platformFeeVnd, providerPayoutVnd },
+            booking: { grossVnd, platformFeeVnd, providerPayoutVnd, gameSlug },
         });
     } catch (e) {
         console.error("quickRent:", e);

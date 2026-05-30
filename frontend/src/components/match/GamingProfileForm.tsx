@@ -87,7 +87,7 @@ export function GamingProfileForm({ user, onSaved }: Props) {
       if (!res.ok) {
         throw new Error(typeof err.message === "string" ? err.message : "Không lưu được.");
       }
-      toast.success("Đã cập nhật sở thích & lịch sử cho thuật toán ghép cặp.");
+      toast.success("Đã cập nhật sở thích & lịch sử .");
       onSaved?.();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Lỗi lưu.");
@@ -101,7 +101,7 @@ export function GamingProfileForm({ user, onSaved }: Props) {
       <div className="pd-card-default">
         <h3 className="pd-text-h3 text-[#354052]">Game hay chơi (sở thích)</h3>
         <p className="pd-text-body-sm mt-2 text-[#666666]">
-          Chọn một hoặc nhiều game — dùng làm nhãn trong vector đặc trưng đa lớp (multi-label).
+          Chọn một hoặc nhiều game.
         </p>
         <div className="mt-4 flex flex-wrap gap-2">
           {taxonomy.map((g) => {
@@ -229,7 +229,7 @@ export function GamingProfileForm({ user, onSaved }: Props) {
           {saving ? "Đang lưu..." : "Lưu cho AI ghép cặp"}
         </Button>
         <p className="pd-text-caption max-w-xl text-[#666666]">
-          Thuật toán: ghép vector (sở thích + lịch sử + tầng thể loại) rồi tính độ tương đồng cosinus với người chơi khác.
+          sở thích + lịch sử + tầng thể loại rồi tính độ tương đồng cosinus với người chơi khác.
         </p>
       </div>
     </form>
