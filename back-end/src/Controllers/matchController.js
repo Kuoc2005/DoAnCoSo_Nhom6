@@ -1,7 +1,30 @@
 import User from "../models/user.js";
-import { maxHoursBySlug, scoreUsers } from "../lib/matchEngine.js";
+import { DEFAULT_WEIGHTS, maxHoursBySlug, normalizeMatchWeights, scoreUsers } from "../lib/matchEngine.js";
 import { ALLOWED_SLUGS, GAME_CATALOG } from "../lib/gameTaxonomy.js";
 import { classifyIntentUtterance, extractGameSlugFromText } from "../lib/intentClassifier.js";
+
+function parseMinScorePercent(raw, fallback = 30) {
+    const n = parseInt(raw, 10);
+    if (Number.isNaN(n)) return fallback;
+    return Math.min(100, Math.max(0, n));
+}
+
+function parseWeightPercent(raw, fallback) {
+    const n = parseInt(raw, 10);
+    if (Number.isNaN(n)) return fallback;
+    return Math.min(100, Math.max(0, n));
+}
+
+function parseMatchWeightsFromQuery(query) {
+    const hasCustom =
+        query.wPref != null || query.wHist != null || query.wGenre != null;
+    if (!hasCustom) return normalizeMatchWeights(DEFAULT_WEIGHTS);
+    return normalizeMatchWeights({
+        preference: parseWeightPercent(query.wPref, 45),
+        playHistory: parseWeightPercent(query.wHist, 35),
+        genreLayer: parseWeightPercent(query.wGenre, 20),
+    });
+}
 
 export const getTaxonomy = (req, res) => {
     const games = ALLOWED_SLUGS.map((slug) => ({
@@ -16,6 +39,8 @@ export const getTaxonomy = (req, res) => {
 export const getSuggestions = async (req, res) => {
     try {
         const limit = Math.min(50, Math.max(1, parseInt(req.query.limit, 10) || 12));
+        const minScorePercent = parseMinScorePercent(req.query.minScore);
+        const weights = parseMatchWeightsFromQuery(req.query);
         const self = await User.findById(req.user._id).select(
             "gamingProfile displayName username email bio createdAt avatarUrl"
         );
@@ -28,7 +53,9 @@ export const getSuggestions = async (req, res) => {
 
         const pool = [self, ...others];
         const maxH = maxHoursBySlug(pool);
-        const ranked = scoreUsers(self, others, maxH).filter((r) => r.scorePercent >= 30).slice(0, limit);
+        const ranked = scoreUsers(self, others, maxH, weights)
+            .filter((r) => r.scorePercent >= minScorePercent)
+            .slice(0, limit);
 
         const suggestions = ranked.map((r) => ({
             score: r.score,
@@ -52,7 +79,8 @@ export const getSuggestions = async (req, res) => {
 
         return res.json({
             algorithm: "multi_label_vector_cosine",
-            weights: { preference: 0.45, playHistory: 0.35, genreLayer: 0.2 },
+            weights,
+            minScorePercent,
             suggestions,
         });
     } catch (e) {

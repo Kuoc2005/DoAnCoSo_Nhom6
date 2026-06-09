@@ -6,9 +6,16 @@
  */
 import { ALLOWED_SLUGS, GAME_CATALOG, GENRES, genresForSlug, normalizeSlug } from "./gameTaxonomy.js";
 
-const W_PREF = 0.45;
-const W_HIST = 0.35;
-const W_GENRE = 0.2;
+export const DEFAULT_WEIGHTS = { preference: 0.45, playHistory: 0.35, genreLayer: 0.2 };
+
+export function normalizeMatchWeights(raw = {}) {
+    const p = Math.max(0, Number(raw.preference) || 0);
+    const h = Math.max(0, Number(raw.playHistory) || 0);
+    const g = Math.max(0, Number(raw.genreLayer) || 0);
+    const sum = p + h + g;
+    if (sum <= 0) return { ...DEFAULT_WEIGHTS };
+    return { preference: p / sum, playHistory: h / sum, genreLayer: g / sum };
+}
 
 function l2Normalize(vec) {
     let s = 0;
@@ -40,7 +47,8 @@ export function maxHoursBySlug(users) {
 /**
  * Vector độ dài cố định: |ALLOWED_SLUGS| (game) + |GENRES|
  */
-export function buildUserVector(user, maxHours) {
+export function buildUserVector(user, maxHours, weights = DEFAULT_WEIGHTS) {
+    const w = normalizeMatchWeights(weights);
     const dimGames = ALLOWED_SLUGS.length;
     const dimGenres = GENRES.length;
     const vec = new Array(dimGames + dimGenres).fill(0);
@@ -61,10 +69,10 @@ export function buildUserVector(user, maxHours) {
         const raw = histMap.get(slug) ?? 0;
         const mx = maxHours[slug] ?? 1;
         const hist = raw > 0 ? Math.min(1, raw / mx) : 0;
-        vec[i] = W_PREF * pref + W_HIST * hist;
+        vec[i] = w.preference * pref + w.playHistory * hist;
     }
 
-    // Genre pool: trung bình các chiều game thuộc genre (đã có trọng số pref+hist)
+    // Genre pool: trung bình các chiều game thuộc genre 
     for (let g = 0; g < dimGenres; g++) {
         const genre = GENRES[g];
         let sum = 0;
@@ -76,7 +84,7 @@ export function buildUserVector(user, maxHours) {
                 cnt++;
             }
         }
-        vec[dimGames + g] = cnt ? (sum / cnt) * W_GENRE : 0;
+        vec[dimGames + g] = cnt ? (sum / cnt) * w.genreLayer : 0;
     }
 
     return l2Normalize(vec);
@@ -90,7 +98,7 @@ export function cosineSimilarity(a, b) {
 }
 
 /**
- *  game trùng sở thích / trùng lịch sử.
+  game trùng sở thích / trùng lịch sử.
  */
 export function explainMatch(selfUser, otherUser) {
     const favA = new Set((selfUser.gamingProfile?.favoriteSlugs ?? []).map(normalizeSlug));
@@ -125,12 +133,12 @@ export function explainMatch(selfUser, otherUser) {
     };
 }
 
-export function scoreUsers(selfUser, candidates, maxHours) {
-    const selfVec = buildUserVector(selfUser, maxHours);
+export function scoreUsers(selfUser, candidates, maxHours, weights = DEFAULT_WEIGHTS) {
+    const selfVec = buildUserVector(selfUser, maxHours, weights);
     const out = [];
     for (const u of candidates) {
         if (String(u._id) === String(selfUser._id)) continue;
-        const v = buildUserVector(u, maxHours);
+        const v = buildUserVector(u, maxHours, weights);
         let score = cosineSimilarity(selfVec, v);
         if (Number.isNaN(score)) score = 0;
         const explanation = explainMatch(selfUser, u);

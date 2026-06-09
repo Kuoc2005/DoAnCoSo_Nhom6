@@ -32,5 +32,6 @@ export type MatchSuggestionItem = {
 export type MatchSuggestionsResponse = {
   algorithm: string;
   weights: { preference: number; playHistory: number; genreLayer: number };
+  minScorePercent: number;
   suggestions: MatchSuggestionItem[];
 };
