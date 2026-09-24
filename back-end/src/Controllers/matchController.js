@@ -1,11 +1,16 @@
 import User from "../models/user.js";
 import { DEFAULT_WEIGHTS, maxHoursBySlug, normalizeMatchWeights, scoreUsers } from "../lib/matchEngine.js";
 import { ALLOWED_SLUGS, GAME_CATALOG } from "../lib/gameTaxonomy.js";
+<<<<<<< HEAD
 import { getRankLevels } from "../lib/gamerank.js";
 import { classifyIntentUtterance, extractGameSlugFromText } from "../lib/intentClassifier.js";
 import {
     recommendTeammates
 } from "../lib/recommendationEngine.js";
+=======
+import { classifyIntentUtterance, extractGameSlugFromText } from "../lib/intentClassifier.js";
+
+>>>>>>> 667b488a894bc37051b38ff9dafa8d98652a29a7
 function parseMinScorePercent(raw, fallback = 30) {
     const n = parseInt(raw, 10);
     if (Number.isNaN(n)) return fallback;
@@ -35,7 +40,10 @@ export const getTaxonomy = (req, res) => {
         label: GAME_CATALOG[slug].label,
         genres: GAME_CATALOG[slug].genres,
         coverUrl: GAME_CATALOG[slug].coverUrl ?? "",
+<<<<<<< HEAD
         rankLevels: getRankLevels(slug),
+=======
+>>>>>>> 667b488a894bc37051b38ff9dafa8d98652a29a7
     }));
     return res.json({ games });
 };
@@ -182,6 +190,7 @@ export const postMatchAssistant = async (req, res) => {
         return res.status(500).json({ message: "Trợ lý không phản hồi được." });
     }
 };
+<<<<<<< HEAD
 /** Lấy danh sách đồng đội đề xuất */
 export const getRecommendedTeammates = async (req, res) => {
     try {
@@ -263,3 +272,5 @@ export const getRecommendedTeammates = async (req, res) => {
         });
     }
 };
+=======
+>>>>>>> 667b488a894bc37051b38ff9dafa8d98652a29a7

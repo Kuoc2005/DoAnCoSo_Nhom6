@@ -5,7 +5,10 @@ export type GameTaxonomyItem = {
   label: string;
   genres: string[];
   coverUrl?: string;
+<<<<<<< HEAD
   rankLevels?: string[];
+=======
+>>>>>>> 667b488a894bc37051b38ff9dafa8d98652a29a7
 };
 
 export type MatchExplanation = {
