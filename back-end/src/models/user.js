@@ -55,91 +55,26 @@ const userSchema = new mongoose.Schema({
     },
     /** Hiển thị trên hub / explore — public */
     playerListing: {
-<<<<<<< HEAD
-        pricePerHour: {
-            type: Number,
-            default: 55000,
-            min: 0,
-            max: 50_000_000
-        },
-
-        // Giữ lại để tương thích code cũ
-        rankLabel: {
-            type: String,
-            default: "",
-            maxlength: 80
-        },
-
-        // Rank theo từng game
+        pricePerHour: { type: Number, default: 55000, min: 0, max: 50_000_000 },
+        /** Rank tổng (tương thích code cũ / studio) */
+        rankLabel: { type: String, default: "", maxlength: 80 },
+        /** Rank theo từng game — dùng hệ thống gợi ý teammate */
         ranks: [
             {
                 gameSlug: {
                     type: String,
                     required: true,
                     lowercase: true,
-                    trim: true
+                    trim: true,
                 },
-
                 rankLabel: {
                     type: String,
                     required: true,
                     maxlength: 80,
-                    trim: true
-                }
-            }
+                    trim: true,
+                },
+            },
         ],
-
-        primaryGameSlug: {
-            type: String,
-            default: "valorant",
-            lowercase: true,
-            trim: true
-        },
-
-        /** Game tự động (hay thuê / hay chơi) */
-        featuredGameSlug: {
-            type: String,
-            default: "",
-            lowercase: true,
-            trim: true
-        },
-
-        ratingAvg: {
-            type: Number,
-            default: 4.5,
-            min: 0,
-            max: 5
-        },
-
-        reviewCount: {
-            type: Number,
-            default: 0,
-            min: 0
-        },
-
-        voiceOk: {
-            type: Boolean,
-            default: true
-        },
-
-        isLive: {
-            type: Boolean,
-            default: false
-        },
-
-        isVerifiedProvider: {
-            type: Boolean,
-            default: false
-        },
-
-        listingCoverUrl: {
-            type: String,
-            default: "",
-            maxlength: 2000
-        },
-=======
-        pricePerHour: { type: Number, default: 55000, min: 0, max: 50_000_000 },
-        rankLabel: { type: String, default: "", maxlength: 80 },
         primaryGameSlug: { type: String, default: "valorant", lowercase: true, trim: true },
         /** Game tự động (hay thuê / hay chơi) — dùng hiển thị hub & ảnh bìa */
         featuredGameSlug: { type: String, default: "", lowercase: true, trim: true },
@@ -151,7 +86,6 @@ const userSchema = new mongoose.Schema({
         isVerifiedProvider: { type: Boolean, default: false },
         /** URL ảnh bìa hồ sơ công khai (provider studio) */
         listingCoverUrl: { type: String, default: "", maxlength: 2000 },
->>>>>>> 667b488a894bc37051b38ff9dafa8d98652a29a7
     },
     /** Đơn đăng ký làm người cho thuê (hiển thị trên hub sau khi duyệt) */
     providerApplication: {

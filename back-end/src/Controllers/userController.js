@@ -1,14 +1,10 @@
 import User from "../models/user.js";
-<<<<<<< HEAD
 import { isAllowedSlug, normalizeSlug } from "../lib/gameTaxonomy.js";
 import {
     getRankLevels,
     isValidRankLabel,
     normalizeRankLabelForGame,
 } from "../lib/gamerank.js";
-=======
-import { ALLOWED_SLUGS, isAllowedSlug, normalizeSlug } from "../lib/gameTaxonomy.js";
->>>>>>> 667b488a894bc37051b38ff9dafa8d98652a29a7
 import { syncProviderFeaturedGame } from "../lib/providerGameProfile.js";
 
 export const authMe = async (req, res) => {
@@ -23,7 +19,6 @@ export const authMe = async (req, res) => {
 
 /**
  * PATCH /api/user/gaming-profile
-<<<<<<< HEAD
  * Body: {
  *   favoriteSlugs?: string[],
  *   playHistory?: { gameSlug, hoursPlayed, sessionsCount?, lastPlayedAt? }[],
@@ -33,13 +28,6 @@ export const authMe = async (req, res) => {
 export const updateGamingProfile = async (req, res) => {
     try {
         const { favoriteSlugs, playHistory, ranks } = req.body ?? {};
-=======
- * Body: { favoriteSlugs?: string[], playHistory?: { gameSlug, hoursPlayed, sessionsCount?, lastPlayedAt? }[] }
- */
-export const updateGamingProfile = async (req, res) => {
-    try {
-        const { favoriteSlugs, playHistory } = req.body ?? {};
->>>>>>> 667b488a894bc37051b38ff9dafa8d98652a29a7
 
         const update = {};
 
@@ -76,7 +64,6 @@ export const updateGamingProfile = async (req, res) => {
             update["gamingProfile.playHistory"] = rows.slice(0, 64);
         }
 
-<<<<<<< HEAD
         if (ranks != null) {
             if (!Array.isArray(ranks)) {
                 return res.status(400).json({ message: "ranks phải là mảng." });
@@ -107,8 +94,6 @@ export const updateGamingProfile = async (req, res) => {
             update["playerListing.ranks"] = rankRows.slice(0, 32);
         }
 
-=======
->>>>>>> 667b488a894bc37051b38ff9dafa8d98652a29a7
         if (Object.keys(update).length === 0) {
             return res.status(400).json({ message: "Không có trường hợp lệ để cập nhật." });
         }

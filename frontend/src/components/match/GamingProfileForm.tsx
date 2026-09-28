@@ -7,12 +7,8 @@ import type { GameTaxonomyItem } from "@/types/match";
 import { cn } from "@/lib/utils";
 
 type Row = { gameSlug: string; hoursPlayed: number; sessionsCount: number; lastPlayedAt: string };
-
-<<<<<<< HEAD
 type RankRow = { gameSlug: string; rankLabel: string };
 
-=======
->>>>>>> 667b488a894bc37051b38ff9dafa8d98652a29a7
 const emptyRow = (): Row => ({
   gameSlug: "",
   hoursPlayed: 0,
@@ -20,7 +16,6 @@ const emptyRow = (): Row => ({
   lastPlayedAt: "",
 });
 
-<<<<<<< HEAD
 const emptyRankRow = (): RankRow => ({
   gameSlug: "",
   rankLabel: "",
@@ -33,8 +28,6 @@ function formatRankLabel(slug: string): string {
     .join(" ");
 }
 
-=======
->>>>>>> 667b488a894bc37051b38ff9dafa8d98652a29a7
 type Props = {
   user: AuthUser | null;
   onSaved?: () => void;
@@ -44,10 +37,7 @@ export function GamingProfileForm({ user, onSaved }: Props) {
   const [taxonomy, setTaxonomy] = useState<GameTaxonomyItem[]>([]);
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
   const [rows, setRows] = useState<Row[]>([emptyRow()]);
-<<<<<<< HEAD
   const [rankRows, setRankRows] = useState<RankRow[]>([]);
-=======
->>>>>>> 667b488a894bc37051b38ff9dafa8d98652a29a7
   const [saving, setSaving] = useState(false);
 
   const loadTaxonomy = useCallback(async () => {
@@ -76,7 +66,6 @@ export function GamingProfileForm({ user, onSaved }: Props) {
         }))
       );
     }
-<<<<<<< HEAD
 
     const savedRanks = user?.playerListing?.ranks ?? [];
     if (savedRanks.length > 0) {
@@ -104,9 +93,6 @@ export function GamingProfileForm({ user, onSaved }: Props) {
     });
     return set;
   }
-=======
-  }, [user?._id, user?.gamingProfile]);
->>>>>>> 667b488a894bc37051b38ff9dafa8d98652a29a7
 
   function toggleFavorite(slug: string) {
     setFavorites((prev) => {
@@ -130,7 +116,6 @@ export function GamingProfileForm({ user, onSaved }: Props) {
           ...(r.lastPlayedAt ? { lastPlayedAt: new Date(r.lastPlayedAt).toISOString() } : {}),
         }));
 
-<<<<<<< HEAD
       const ranksPayload = rankRows
         .filter((r) => r.gameSlug && r.rankLabel)
         .map((r) => ({
@@ -154,24 +139,12 @@ export function GamingProfileForm({ user, onSaved }: Props) {
       const res = await apiFetch("/api/user/gaming-profile", {
         method: "PATCH",
         body: JSON.stringify(body),
-=======
-      const res = await apiFetch("/api/user/gaming-profile", {
-        method: "PATCH",
-        body: JSON.stringify({
-          favoriteSlugs: [...favorites],
-          playHistory,
-        }),
->>>>>>> 667b488a894bc37051b38ff9dafa8d98652a29a7
       });
       const err = await res.json().catch(() => ({}));
       if (!res.ok) {
         throw new Error(typeof err.message === "string" ? err.message : "Không lưu được.");
       }
-<<<<<<< HEAD
       toast.success("Đã cập nhật sở thích, lịch sử & rank.");
-=======
-      toast.success("Đã cập nhật sở thích & lịch sử .");
->>>>>>> 667b488a894bc37051b38ff9dafa8d98652a29a7
       onSaved?.();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Lỗi lưu.");
@@ -308,7 +281,6 @@ export function GamingProfileForm({ user, onSaved }: Props) {
         </div>
       </div>
 
-<<<<<<< HEAD
       <div className="pd-card-default">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
@@ -401,8 +373,6 @@ export function GamingProfileForm({ user, onSaved }: Props) {
         )}
       </div>
 
-=======
->>>>>>> 667b488a894bc37051b38ff9dafa8d98652a29a7
       <div className="flex flex-wrap gap-3">
         <Button type="submit" variant="pdPrimary" disabled={saving}>
           {saving ? "Đang lưu..." : "Lưu cho AI ghép cặp"}

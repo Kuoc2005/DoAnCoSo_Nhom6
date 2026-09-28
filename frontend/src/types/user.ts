@@ -30,10 +30,7 @@ export type AuthUser = {
   playerListing?: {
     pricePerHour?: number;
     rankLabel?: string;
-<<<<<<< HEAD
     ranks?: { gameSlug: string; rankLabel: string }[];
-=======
->>>>>>> 667b488a894bc37051b38ff9dafa8d98652a29a7
     primaryGameSlug?: string;
     ratingAvg?: number;
     reviewCount?: number;

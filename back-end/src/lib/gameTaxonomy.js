@@ -45,11 +45,7 @@ export const GAME_CATALOG = Object.freeze({
     dota2: {
         label: "Dota 2",
         genres: ["MOBA"],
-<<<<<<< HEAD
-        coverUrl: "https://cdn.tgdd.vn/2020/06/content/hinh-nen-dota-2-full-hd-cho-may-tinh-va-dien-thoai-background-800x450.jpg",
-=======
         coverUrl: "https://cdn.tgdd.vn/2020/06/campaign/hinh-nen-dota-2-full-hd-cho-may-tinh-va-dien-thoai-thumb-640x360.jpg",
->>>>>>> 667b488a894bc37051b38ff9dafa8d98652a29a7
     },
     fortnite: {
         label: "Fortnite",
